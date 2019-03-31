@@ -124,6 +124,12 @@ class Player(pygame.sprite.Sprite):
         isStuckLeft  = []
         isStuckTop   = []
 
+        floor_bottomleft  = self.rect.bottomleft[0]+30 ,self.rect.bottomleft[1]   -2
+        floor_bottomright = self.rect.bottomright[0]-30,self.rect.bottomright[1]  -2
+        top_topleft  = self.rect.topleft[0]+30   ,self.rect.topleft[1]   -2
+        top_topright = self.rect.topright[0]-30   ,self.rect.topright[1]  -2
+
+
         bottomleft  = self.rect.bottomleft[0] ,self.rect.bottomleft[1]   -3
         bottomright = self.rect.bottomright[0],self.rect.bottomright[1]  -3
         topleft     = self.rect.topleft[0]    ,self.rect.topleft[1]      
@@ -135,14 +141,15 @@ class Player(pygame.sprite.Sprite):
         objs = pygame.sprite.spritecollide(self, self.scene.objects_list, False)
 
         for obj in objs:
-            if obj.rect.collidepoint(self.rect.bottomleft)  or obj.rect.collidepoint(self.rect.bottomright):
+            if obj.rect.collidepoint(floor_bottomleft)  or obj.rect.collidepoint(floor_bottomright):
                 isNotFalling.append(obj)
 
-            if obj.rect.collidepoint(self.rect.topleft)  or obj.rect.collidepoint(self.rect.topright):
+            if obj.rect.collidepoint(top_topleft)  or obj.rect.collidepoint(top_topright):
                 isStuckTop.append(obj)
         
             if obj.rect.collidepoint(bottomleft)  or obj.rect.collidepoint(topleft)  or obj.rect.collidepoint(midleft):
                 isStuckLeft.append(obj)
+                print('StuckLeft ->   self: ',midleft,'  Crate: ',obj.rect.right)
 
             if obj.rect.collidepoint(bottomright)  or obj.rect.collidepoint(topright)  or obj.rect.collidepoint(midright):
                 isStuckRight.append(obj)
@@ -192,10 +199,11 @@ class Player(pygame.sprite.Sprite):
 
         self.checkCol()
 
+
         size_x = self.rect.right-self.rect.left
         size_y = self.rect.bottom-self.rect.top
 
-        if keyboard[pygame.K_UP] or keyboard[ord('w')]:
+        if keyboard[pygame.K_SPACE] or keyboard[ord('w')]:
             if  'notFalling' in self.states and not  'jumping' in self.states:
                 self.states['jumping']=1
 
@@ -210,7 +218,14 @@ class Player(pygame.sprite.Sprite):
                     self.states.pop('jumping')
 
 
-            if 'stuckTop' in self.states:
+            if not 'stuckTop' in self.states:
+                oldRectY = self.rect.y
+                self.rect.y += self.jumpSpeed
+                self.checkCol()
+                self.rect.y = oldRectY
+
+
+            if  'stuckTop' in self.states:  
                 maxY=self.states['stuckTop'][0].rect.bottom 
                 for obj in  self.states['stuckTop']:
                     maxY = obj.rect.bottom if obj.rect.bottom<maxY else maxY
@@ -230,33 +245,41 @@ class Player(pygame.sprite.Sprite):
                 else:
                     if self.gravMovey < 9:
                         self.gravMovey += self.gravMovey*0.1
-            else:
+                        
+                    oldRectY = self.rect.y
+                    self.rect.y += self.gravMovey
+                    self.checkCol()
+                    self.rect.y = oldRectY
+
+            if  'notFalling' in self.states:
                 self.gravMovey=0
                 
                 minY=self.states['notFalling'][0].rect.top 
                 for obj in  self.states['notFalling']:
                     minY = obj.rect.top if obj.rect.top<minY else minY
-                self.rect.y = minY-size_y+1
+                self.rect.y = minY-size_y+2
         if keyboard[pygame.K_LEFT] or keyboard[ord('a')]:
             if not 'stuckLeft' in self.states:
                 self.control(-steps,0)
             # self.control(steps,0)
-        elif   not 'notFalling' in self.states and 'stuckLeft' in self.states:
-            maxX=self.states['stuckLeft'][0].rect.right 
-            for obj in  self.states['stuckLeft']:
-                maxX = obj.rect.right if obj.rect.right>maxX else maxX
-            self.rect.x = maxX-10
+        # elif   not 'notFalling' in self.states and 'stuckLeft' in self.states:
+            else:
+                maxX=self.states['stuckLeft'][0].rect.right 
+                for obj in  self.states['stuckLeft']:
+                    maxX = obj.rect.right if obj.rect.right>maxX else maxX
+                self.rect.x = maxX-2
 
 
         if keyboard[pygame.K_RIGHT] or keyboard[ord('d')]:
             if not 'stuckRight' in self.states:
                 self.control(steps,0)
-        elif   not 'notFalling' in self.states and 'stuckRight' in self.states:
-            minX=self.states['stuckRight'][0].rect.left 
-            for obj in  self.states['stuckRight']:
-                minX = obj.rect.left if obj.rect.left<minX else minX
-            self.rect.x = minX-size_x+10
-            # self.control(-steps,0)
+        # elif   not 'notFalling' in self.states and 'stuckRight' in self.states:
+            else:
+                
+                minX=self.states['stuckRight'][0].rect.left 
+                for obj in  self.states['stuckRight']:
+                    minX = obj.rect.left if obj.rect.left<minX else minX
+                self.rect.x = minX-size_x+2
 
             
 
@@ -265,7 +288,6 @@ class Player(pygame.sprite.Sprite):
 
         self.rect.x = self.rect.x + self.movex
         self.rect.y = self.rect.y + self.movey +self.gravMovey+self.jumpSpeed
-
 
 
 
