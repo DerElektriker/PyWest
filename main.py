@@ -102,12 +102,31 @@ class Player(pygame.sprite.Sprite):
             self.rect  = self.image.get_rect()
         
 
-        img = pygame.image.load(os.path.join(path,'Images','Idle__000.png')).convert()
-        img.convert_alpha()
-        img.set_colorkey(ALPHA)
-        img_size = img.get_size()
-        img = pygame.transform.scale(img, (int(img_size[0]/4), int(img_size[1]/4)))
-        self.imgIdle = img
+
+        self.lookingAtRight = True
+
+        ####Jumping sprites
+        self.imgJumping = []
+        for i in range(0,10):
+            img = pygame.image.load(os.path.join(path,'Images','Jump__00' + str(i) + '.png')).convert()
+            img.convert_alpha()
+            img.set_colorkey(ALPHA)
+            img_size = img.get_size()
+            img = pygame.transform.scale(img, (int(img_size[0]/4), int(img_size[1]/4)))
+            self.imgJumping.append(img)
+
+
+        ####Idle sprites
+        self.imgIdle = []
+        for i in range(0,10):
+            img = pygame.image.load(os.path.join(path,'Images','Idle__00' + str(i) + '.png')).convert()
+            img.convert_alpha()
+            img.set_colorkey(ALPHA)
+            img_size = img.get_size()
+            img = pygame.transform.scale(img, (int(img_size[0]/4), int(img_size[1]/4)))
+            self.imgIdle.append(img)
+        
+
         
 
         #Velocidad a la cual se mostrala la animacion
@@ -130,12 +149,14 @@ class Player(pygame.sprite.Sprite):
         top_topright = self.rect.topright[0]-30   ,self.rect.topright[1]  -2
 
 
-        bottomleft  = self.rect.bottomleft[0] ,self.rect.bottomleft[1]   -3
-        bottomright = self.rect.bottomright[0],self.rect.bottomright[1]  -3
-        topleft     = self.rect.topleft[0]    ,self.rect.topleft[1]      
-        topright    = self.rect.topright[0]   ,self.rect.topright[1]     
-        midleft     = self.rect.midleft[0]    ,self.rect.midleft[1]           
-        midright    = self.rect.midright[0]   ,self.rect.midright[1]         
+        latOff=15
+
+        bottomleft  = self.rect.bottomleft[0] +latOff,self.rect.bottomleft[1]   -5
+        bottomright = self.rect.bottomright[0]-latOff,self.rect.bottomright[1]  -5
+        topleft     = self.rect.topleft[0]    +latOff,self.rect.topleft[1]      
+        topright    = self.rect.topright[0]   -latOff,self.rect.topright[1]     
+        midleft     = self.rect.midleft[0]    +latOff,self.rect.midleft[1]        
+        midright    = self.rect.midright[0]   -latOff,self.rect.midright[1]      
 
 
         objs = pygame.sprite.spritecollide(self, self.scene.objects_list, False)
@@ -149,7 +170,7 @@ class Player(pygame.sprite.Sprite):
         
             if obj.rect.collidepoint(bottomleft)  or obj.rect.collidepoint(topleft)  or obj.rect.collidepoint(midleft):
                 isStuckLeft.append(obj)
-                print('StuckLeft ->   self: ',midleft,'  Crate: ',obj.rect.right)
+                # print('StuckLeft ->   self: ',midleft,'  Crate: ',obj.rect.right)
 
             if obj.rect.collidepoint(bottomright)  or obj.rect.collidepoint(topright)  or obj.rect.collidepoint(midright):
                 isStuckRight.append(obj)
@@ -200,8 +221,8 @@ class Player(pygame.sprite.Sprite):
         self.checkCol()
 
 
-        size_x = self.rect.right-self.rect.left
-        size_y = self.rect.bottom-self.rect.top
+        size_x = self.rect.right  - self.rect.left
+        size_y = self.rect.bottom - self.rect.top
 
         if keyboard[pygame.K_SPACE] or keyboard[ord('w')]:
             if  'notFalling' in self.states and not  'jumping' in self.states:
@@ -258,28 +279,59 @@ class Player(pygame.sprite.Sprite):
                 for obj in  self.states['notFalling']:
                     minY = obj.rect.top if obj.rect.top<minY else minY
                 self.rect.y = minY-size_y+2
-        if keyboard[pygame.K_LEFT] or keyboard[ord('a')]:
-            if not 'stuckLeft' in self.states:
-                self.control(-steps,0)
+        
+        self.checkCol()
             # self.control(steps,0)
         # elif   not 'notFalling' in self.states and 'stuckLeft' in self.states:
-            else:
-                maxX=self.states['stuckLeft'][0].rect.right 
-                for obj in  self.states['stuckLeft']:
-                    maxX = obj.rect.right if obj.rect.right>maxX else maxX
-                self.rect.x = maxX-2
+            # else:
 
-
+        if keyboard[pygame.K_LEFT] or keyboard[ord('a')]:
+            self.lookingAtRight = False
+            if not 'stuckLeft' in self.states:  
+                self.control(-steps,0)
+                
         if keyboard[pygame.K_RIGHT] or keyboard[ord('d')]:
+            self.lookingAtRight = True
             if not 'stuckRight' in self.states:
                 self.control(steps,0)
         # elif   not 'notFalling' in self.states and 'stuckRight' in self.states:
-            else:
-                
-                minX=self.states['stuckRight'][0].rect.left 
-                for obj in  self.states['stuckRight']:
-                    minX = obj.rect.left if obj.rect.left<minX else minX
-                self.rect.x = minX-size_x+2
+            # else:
+
+        if not 'stuckLeft' in self.states: 
+
+            auxRectX = self.movex
+            auxRectY = self.movey +self.jumpSpeed
+            self.rect.x+=auxRectX
+            self.rect.y+=auxRectY
+            self.checkCol() 
+            self.rect.x-=auxRectX
+            self.rect.y-=auxRectY
+
+        if 'stuckLeft' in self.states: 
+            maxX=self.states['stuckLeft'][0].rect.right 
+            for obj in  self.states['stuckLeft']:
+                maxX = obj.rect.right if obj.rect.right>maxX else maxX
+            self.rect.x = maxX
+            # self.control(steps,0)
+
+
+
+        if not 'stuckRight' in self.states: 
+            auxRectX = self.movex
+            auxRectY = self.movey +self.jumpSpeed
+            self.rect.x+=auxRectX
+            self.rect.y+=auxRectY
+            self.checkCol() 
+            self.rect.x-=auxRectX
+            self.rect.y-=auxRectY
+
+
+        if  'stuckRight' in self.states:
+            minX=self.states['stuckRight'][0].rect.left 
+            for obj in  self.states['stuckRight']:
+                minX = obj.rect.left if obj.rect.left<minX else minX
+            self.rect.x = minX-size_x
+            # self.control(-steps,0)
 
             
 
@@ -294,33 +346,54 @@ class Player(pygame.sprite.Sprite):
 
         ##Cantidad de animaciones es igual a la longitud del vector de animaciones
         numAnim = len(self.images)
-        
-        if not (keyboard[pygame.K_LEFT] or keyboard[ord('a')] or keyboard[pygame.K_RIGHT] or keyboard[ord('d')]):
-            self.image = self.imgIdle
+        if not (keyboard[pygame.K_LEFT] or keyboard[ord('a')] or keyboard[pygame.K_RIGHT] or keyboard[ord('d')]) and not 'jumping' in self.states and  'notFalling' in self.states:
+            self.frame += 1
+            if self.frame//self.animSpeed >= len(self.imgIdle):
+                self.frame = 0
+            self.image = self.imgIdle[(self.frame//self.animSpeed)]
+            self.image = pygame.transform.flip(self.image,not self.lookingAtRight,False)
+
+
+        if 'jumping' in self.states:
+            if self.lastMov != 'jump':
+                self.lastMov = 'jump'
+                self.frame = 0
+
+            if not ((self.frame//self.animSpeed) >= len(self.imgJumping)):
+                print(self.frame//self.animSpeed)
+                self.image = self.imgJumping[self.frame//self.animSpeed]
+                self.image = pygame.transform.flip(self.image,not self.lookingAtRight,False)
+                self.frame += 1
+
+        elif   not 'notFalling' in self.states:
+            self.image = self.imgJumping[-1]
+            self.image = pygame.transform.flip(self.image,not self.lookingAtRight,False)
+
 
         # moving left
-        elif self.movex < 0:
-            if self.lastMov != 'left':
-                self.lastMov = 'left'
-                self.frame = 0
+        elif (keyboard[pygame.K_LEFT] or keyboard[ord('a')] or keyboard[pygame.K_RIGHT] or keyboard[ord('d')]) and not 'jumping' in self.states and not 'falling' in self.states:
 
-            self.frame += 1
-            if self.frame//self.animSpeed >= numAnim:
-                self.frame = 0
-            self.image = self.images[(self.frame//self.animSpeed)]
-            self.image = pygame.transform.flip(self.image,True,False)
+            if self.movex < 0:
+                if self.lastMov != 'left':
+                    self.lastMov = 'left'
+                    self.frame = 0
 
-        # moving right
-        elif self.movex > 0:
-            if self.lastMov != 'right':
-                self.lastMov = 'right'
-                self.frame = 0
-            self.frame += 1
-            if self.frame//self.animSpeed >= numAnim:
-                self.frame = 0
-            self.image = self.images[(self.frame//self.animSpeed)]
+                self.frame += 1
+                if self.frame//self.animSpeed >= numAnim:
+                    self.frame = 0
+                self.image = self.images[(self.frame//self.animSpeed)]
+                self.image = pygame.transform.flip(self.image,True,False)
 
-        # world.blit(self.image,(self.rect.x,self.rect.y))
+            # moving right
+            elif self.movex > 0:
+                if self.lastMov != 'right':
+                    self.lastMov = 'right'
+
+                    self.frame = 0
+                self.frame += 1
+                if self.frame//self.animSpeed >= numAnim:
+                    self.frame = 0
+                self.image = self.images[(self.frame//self.animSpeed)]
 
         self.movex = 0
         self.movey = 0
