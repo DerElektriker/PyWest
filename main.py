@@ -12,6 +12,7 @@
 import pygame
 import sys
 import os
+import math
 
 path = os.path.dirname(os.path.abspath(__file__))
 print (path)
@@ -26,36 +27,109 @@ class Map:
         self.objects_list = pygame.sprite.Group()
 
         for i in range(5):
-             self.objects_list.add(Crate(self,50+50*i,300))
+             self.objects_list.add(Crate(50+50*i,300))
         for i in range(5):
-             self.objects_list.add(Crate(self,250+50*i,500))
+             self.objects_list.add(Crate(250+50*i,500))
         for i in range(4):
-             self.objects_list.add(Crate(self,750+50*i,100))
+             self.objects_list.add(Crate(750+50*i,100))
         for i in range(5):
-             self.objects_list.add(Crate(self,300+50*i,200))
+             self.objects_list.add(Crate(300+50*i,200))
         for i in range(30):
-             self.objects_list.add(Crate(self,0+50*i,700))
+             self.objects_list.add(Crate(0+50*i,700))
         for i in range(4):
-             self.objects_list.add(Crate(self,750+50*i,500))
+             self.objects_list.add(Crate(750+50*i,500))
+
+        ## Creamos un objeto Sword
+        self.sword_1 = Sword(400,100)
+
+        self.objects_list.add(self.sword_1)
 
     def draw(self):
         self.objects_list.draw(self.display) #refresh player position
+
+    def update(self):
+
+        for i in self.objects_list.__iter__():
+            i.update()
+        
+
+class Sword(pygame.sprite.Sprite):
+
+    def __init__(self,x,y):
+    ##El Init se ejecuta al momento de construirse el objeto
+
+        ##Al ser una subclase, con la siguiente linea se inicializan todos los metodos heredados de Sprite
+        pygame.sprite.Sprite.__init__(self)
+        
+
+        #Cargamos la imagen
+        img = pygame.image.load("./Images/Sword.png").convert()
+
+    #Se escala la imagen para que este de acuerdo con las dimensiones del escenario
+        #Se pide las dimensiones actuales de la imagen
+        size_x,size_y = img.get_size()
+        #Se redimensiona la imagen a un tercio de la imagen original
+        img = pygame.transform.scale(img, (int(size_x/3), int(size_y/3)))
+
+
+        # Las siguientes dos lineas se utilizan para quitarle el fondo blanco a la imagen
+        img.convert_alpha()
+        img.set_colorkey((255,255,255))
+
+        self.image = img
+
+        # Se define cual va a ser el rectangulo de colision del objeto
+        self.rect  = self.image.get_rect()
+
+
+        self.tick = 0
+
+        self.rect.x = x
+        self.rect.y = y
+
+        self.firstY = None
+
+    def getConstructor(self):
+        return Sword,[self.rect.x,self.rect.y]
+
+    def update(self):
+
+
+
+        # Si es la primera vez que se ejecuta la primera vez que se ejecuta el metodo update
+        # se guarda la posición inicial de Y, para que flote al rededor de el punto inicial
+        if self.firstY is None:
+            self.firstY=self.rect.y
+        
+        # Flota siguiendo una trayectoria senoidal, utilizando la funcion "sin" (seno) y la variable 
+        # PI ubicados en el modulo matematico "math"
+
+        if self.tick>math.pi*20:
+            self.tick=0
+        else:
+            self.tick+=0.4
+
+        #Se actualiza la posición
+        self.rect.y = self.firstY+math.sin(self.tick/10)*10
+        
+
+
+
 
 
 class Crate(pygame.sprite.Sprite):
     '''
     Spawn a player
     '''
-    def __init__(self,scene,x,y):
+    def __init__(self,x,y):
         pygame.sprite.Sprite.__init__(self)
 
         self.x = x  
         self.y = y 
-        self.scene = scene
 
         img = pygame.image.load(os.path.join(path,'desert','Objects','Crate.png')).convert()
-        img_size = img.get_size()
-        img = pygame.transform.scale(img, (int(img_size[0]/2), int(img_size[1]/2)))
+        self.img_size = img.get_size()
+        img = pygame.transform.scale(img, (int(self.img_size[0]/2), int(self.img_size[1]/2)))
         img.convert_alpha()
         img.set_colorkey(ALPHA)
         # img = pygame.transform.scale(img, (int(img_size[0]/4), int(img_size[1]/4)))
@@ -64,7 +138,11 @@ class Crate(pygame.sprite.Sprite):
         self.rect.y = self.y
         self.rect.x = self.x
 
+    def getConstructor(self):
+        return (Crate,[self.x,self.y])
 
+    def update(self):
+        pass
 
 class Player(pygame.sprite.Sprite):
     '''
@@ -162,6 +240,13 @@ class Player(pygame.sprite.Sprite):
         objs = pygame.sprite.spritecollide(self, self.scene.objects_list, False)
 
         for obj in objs:
+
+            #Preguntamos si el elemento con el cual se detecto la colision es de tipo Sword
+            if type(obj)==Sword:
+                #Si es de tipo Sword, entonces que ignore ete analisis, y continue con el 
+                #siguiente obj que esta colisionando
+                continue
+
             if obj.rect.collidepoint(floor_bottomleft)  or obj.rect.collidepoint(floor_bottomright):
                 isNotFalling.append(obj)
 
@@ -428,8 +513,6 @@ player_list = pygame.sprite.Group()
 player_list.add(player) 
 steps = 10      # how fast to move
 
-
-
 '''
 Main loop
 '''
@@ -451,9 +534,40 @@ while main == True:
                 player.rect.x=0
                 player.rect.y=0
 
+            if event.key == ord('h'):
+                desierto.objects_list.add(Crate(pygame.mouse.get_pos()[0]//50 *50,pygame.mouse.get_pos()[1]//50 *50))
+
+            if event.key == ord('g'):
+                for i in desierto.objects_list.__iter__():
+                    if i.rect.collidepoint(pygame.mouse.get_pos()):
+                        desierto.objects_list.remove(i)
+
+            if event.key == ord('k'):
+                import pickle
+                with open('map.pkl','wb') as wb:
+                    objects = []
+                    for i in desierto.objects_list.__iter__():
+                        print(i)
+                        objects.append(i.getConstructor())
+                        
+                    pickle.dump(objects,wb)
+                    
+
+            if event.key == ord('l'):
+                import pickle
+                with open('map.pkl','rb') as rb:
+                    objects = pickle.load(rb)
+                    desierto.objects_list.empty()
+                    for i in objects:
+                        desierto.objects_list.add(i[0](*i[1]))
+
+
+
+
     world.fill(BLACK)
     # world.blit(backdrop, backdropbox)
     player.update()
+    desierto.update()
     desierto.draw()
     player_list.draw(world) #refresh player position
     pygame.display.flip()
