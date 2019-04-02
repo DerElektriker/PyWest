@@ -3,7 +3,7 @@ import socket , threading
 
 TCP_IP = '127.0.0.1'
 TCP_PORT = 5005
-BUFFER_SIZE = 20  # Normally 1024, but we want fast response 
+BUFFER_SIZE = 1024  # Normally 1024, but we want fast response 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.bind((TCP_IP, TCP_PORT))
 s.listen(1)
@@ -19,12 +19,11 @@ class process_data():
         comandos = []
         aux = []
         for palabra in string:
-            if (palabra == "//"):
-                if (aux != []):
-                    comandos.append(aux)
-                    aux = []
+            if (palabra == "//" and aux != []):
+                comandos.append(aux)
+                aux = []
             else :
-                aux = aux.append(palabra)
+                aux.append(palabra)
         return comandos
         
 

@@ -10,6 +10,6 @@ s.connect((TCP_IP, TCP_PORT))
 while(1):
     time.sleep(5)
     s.send(MESSAGE)
-    data = s.recv(BUFFER_SIZE)
+    data = s.recv(BUFFER_SIZE) #por ahora se cuelga aca porque el server no tira nada
     print ("received data:", data)
 s.close()
