@@ -25,6 +25,23 @@ class process_data():
             else :
                 aux.append(palabra)
         return comandos
+
+    def parser(id, arglist):
+        if(id == "UPos"):
+            pass
+        elif(id == "Otracosa"):
+            pass
+
+    def command_exec(commands):
+        for command in commands:
+            process_data.parser(command[0],command[1:])
+
+    def run(data):
+        commands = process_data.unpack(data)
+        process_data.command_exec(commands)
+            
+
+
         
 
 
@@ -48,7 +65,7 @@ class myThread (threading.Thread):
                     del hilos[self.threadID]
                 control_lock.release()
                 break
-            print (process_data.unpack(data))
+            print (process_data.run(data))
             print_lock.acquire()
             print ("received from:", self.addr)
             print_lock.release()
