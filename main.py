@@ -181,7 +181,8 @@ class Player(pygame.sprite.Sprite):
         
 
 
-        self.lookingAtRight = True
+        self.lookingAtRight = 1
+        self.falling = 1
 
         ####Jumping sprites
         self.imgJumping = []
@@ -213,7 +214,7 @@ class Player(pygame.sprite.Sprite):
         #Variable auxiliar para saber cuando se estaba moviendo a la der o a la izq
         self.lastMov = None
 
-    def checkCol(self):
+    def checkCol(self,diffx=0, diffy=0, flag=True):
 
         ###Variable auxiliar para identificar colisiones
         isNotFalling = []
@@ -236,59 +237,36 @@ class Player(pygame.sprite.Sprite):
         midleft     = self.rect.midleft[0]    +latOff,self.rect.midleft[1]        
         midright    = self.rect.midright[0]   -latOff,self.rect.midright[1]      
 
-
-        objs = pygame.sprite.spritecollide(self, self.scene.objects_list, False)
-
-        for obj in objs:
-
-            #Preguntamos si el elemento con el cual se detecto la colision es de tipo Sword
-            if type(obj)==Sword:
-                #Si es de tipo Sword, entonces que ignore ete analisis, y continue con el 
-                #siguiente obj que esta colisionando
-                continue
-
-            if obj.rect.collidepoint(floor_bottomleft)  or obj.rect.collidepoint(floor_bottomright):
-                isNotFalling.append(obj)
-
-            if obj.rect.collidepoint(top_topleft)  or obj.rect.collidepoint(top_topright):
-                isStuckTop.append(obj)
-        
-            if obj.rect.collidepoint(bottomleft)  or obj.rect.collidepoint(topleft)  or obj.rect.collidepoint(midleft):
-                isStuckLeft.append(obj)
-                # print('StuckLeft ->   self: ',midleft,'  Crate: ',obj.rect.right)
-
-            if obj.rect.collidepoint(bottomright)  or obj.rect.collidepoint(topright)  or obj.rect.collidepoint(midright):
-                isStuckRight.append(obj)
-
-
-
-        if isNotFalling:
-            if not 'notFalling' in self.states:
-                self.states['notFalling']=isNotFalling
+        aux = pygame.sprite.Sprite()
+        if flag:
+            if diffx>0:
+                if diffy>0:
+                    aux.rect = pygame.rect.Rect(self.rect.x,self.rect.y,self.shape_x+diffx,self.shape_y+diffy)
+                else:
+                    aux.rect = pygame.rect.Rect(self.rect.x,self.rect.y+diffy,self.shape_x+diffx,self.shape_y)
+            else:
+                if diffy>0:
+                    aux.rect = pygame.rect.Rect(self.rect.x+diffx,self.rect.y,self.shape_x,self.shape_y+diffy)
+                else:
+                    aux.rect = pygame.rect.Rect(self.rect.x+diffx,self.rect.y+diffy,self.shape_x,self.shape_y)
         else:
-            if 'notFalling' in self.states:
-                self.states.pop('notFalling')
 
-        if isStuckTop:
-            if not 'stuckTop' in self.states:
-                self.states['stuckTop']=isStuckTop
-        else:
-            if 'stuckTop' in self.states:
-                self.states.pop('stuckTop')
+            if diffx>0:
+                if diffy>=0:
+                    aux.rect = pygame.rect.Rect(self.rect.x+diffx,self.rect.y+diffy,self.shape_x,self.shape_y)
+                else:
+                    aux.rect = pygame.rect.Rect(self.rect.x+diffx,self.rect.y,self.shape_x,self.shape_y+diffy)
+            else:
+                if diffy>=0:
+                    aux.rect = pygame.rect.Rect(self.rect.x,self.rect.y+diffy,self.shape_x+diffx,self.shape_y)
+                else:
+                    aux.rect = pygame.rect.Rect(self.rect.x,self.rect.y,self.shape_x+diffx,self.shape_y+diffy)
 
-        if isStuckLeft:
-            if not 'stuckLeft' in self.states:
-                self.states['stuckLeft']=isStuckLeft
-        else:
-            if 'stuckLeft' in self.states:
-                self.states.pop('stuckLeft')
 
-        if isStuckRight:
-            if not 'stuckRight' in self.states:
-                self.states['stuckRight']=isStuckRight
-        else:
-            if 'stuckRight' in self.states:
-                self.states.pop('stuckRight')
+
+        objs = pygame.sprite.spritecollide(aux, self.scene.objects_list, False)
+
+        return objs
 
 
     def control(self,x,y):
@@ -299,6 +277,141 @@ class Player(pygame.sprite.Sprite):
         self.movey += y
 
     def update(self):
+        '''
+        Update sprite position
+        '''
+        self.shape_x,self.shape_y = self.image.get_size()
+        col_list = self.checkCol()
+
+
+
+        if keyboard[pygame.K_SPACE] or keyboard[ord('w')]:
+            if  not 'falling' in self.states and not  'jumping' in self.states:
+                self.states['jumping']=1
+
+        if 'jumping' in self.states:
+            self.falling = -1
+            if self.jumpSpeed==0:
+                self.jumpSpeed = -25
+            elif self.jumpSpeed<=-1:
+                self.jumpSpeed -= self.jumpSpeed*0.15
+            else:
+                self.jumpSpeed=0
+                self.falling = 1
+                if 'jumping' in self.states:
+                    self.states.pop('jumping')
+
+
+        ### Procesando Caidas
+        elif not 'jumping' in self.states :
+
+            self.jumpSpeed = 0
+            self.falling = 1
+            if 'falling' in self.states:
+                if self.gravMovey==0:
+                    self.gravMovey = 3
+                else:
+                    if self.gravMovey < 9:
+                        self.gravMovey += self.gravMovey*0.1
+                        
+            else:
+                self.gravMovey=0
+                
+
+
+        if keyboard[pygame.K_LEFT] or keyboard[ord('a')]:
+            self.lookingAtRight = -1
+            self.movex=  -steps
+
+        if keyboard[pygame.K_RIGHT] or keyboard[ord('d')]:
+            self.lookingAtRight = 1
+            self.movex=  steps
+
+            
+
+        diffX = totalMoveX = self.movex
+        diffY = totalMoveY = self.movey +self.gravMovey+self.jumpSpeed
+
+
+
+        self.states['falling'] = 1
+        print (self.falling)
+        col_list=self.checkCol(-diffX-self.lookingAtRight*20,diffY+20*self.falling,False)
+        for i in col_list:                     
+                if diffY >= 0:
+                    self.rect.bottom = i.rect.top
+                    if 'falling' in self.states:
+                        self.states.pop('falling')
+
+                if diffY < 0:
+                    self.jumpSpeed = -0.1
+                    self.rect.top = i.rect.bottom
+
+        self.rect.y = self.rect.y + totalMoveY
+        col_list=self.checkCol(diffX+self.lookingAtRight*10,-diffY-10*self.falling)
+        for i in col_list:    
+                if diffX > 0:                        
+                    self.rect.right = i.rect.left    
+                if diffX < 0:                        
+                    self.rect.left = i.rect.right
+
+        self.rect.x = self.rect.x + totalMoveX
+
+        ##Cantidad de animaciones es igual a la longitud del vector de animaciones
+        numAnim = len(self.images)
+        if not (keyboard[pygame.K_LEFT] or keyboard[ord('a')] or keyboard[pygame.K_RIGHT] or keyboard[ord('d')]) and not 'jumping' in self.states and  not 'falling' in self.states:
+            self.frame += 1
+            if self.frame//self.animSpeed >= len(self.imgIdle):
+                self.frame = 0
+            self.image = self.imgIdle[(self.frame//self.animSpeed)]
+            self.image = pygame.transform.flip(self.image,not (self.lookingAtRight==1),False)
+
+
+        if 'jumping' in self.states:
+            if self.lastMov != 'jump':
+                self.lastMov = 'jump'
+                self.frame = 0
+
+            if not ((self.frame//self.animSpeed) >= len(self.imgJumping)):
+                print(self.frame//self.animSpeed)
+                self.image = self.imgJumping[self.frame//self.animSpeed]
+                self.image = pygame.transform.flip(self.image,not (self.lookingAtRight==1),False)
+                self.frame += 1
+
+        elif   'falling' in self.states:
+            self.image = self.imgJumping[-1]
+            self.image = pygame.transform.flip(self.image,not (self.lookingAtRight==1),False)
+
+
+        # moving left
+        elif (keyboard[pygame.K_LEFT] or keyboard[ord('a')] or keyboard[pygame.K_RIGHT] or keyboard[ord('d')]) and not 'jumping' in self.states and not 'falling' in self.states:
+
+            if self.movex < 0:
+                if self.lastMov != 'left':
+                    self.lastMov = 'left'
+                    self.frame = 0
+
+                self.frame += 1
+                if self.frame//self.animSpeed >= numAnim:
+                    self.frame = 0
+                self.image = self.images[(self.frame//self.animSpeed)]
+                self.image = pygame.transform.flip(self.image,True,False)
+
+            # moving right
+            elif self.movex > 0:
+                if self.lastMov != 'right':
+                    self.lastMov = 'right'
+
+                    self.frame = 0
+                self.frame += 1
+                if self.frame//self.animSpeed >= numAnim:
+                    self.frame = 0
+                self.image = self.images[(self.frame//self.animSpeed)]
+
+        self.movex = 0
+        self.movey = 0
+
+    def _update(self):
         '''
         Update sprite position
         '''
@@ -371,12 +484,12 @@ class Player(pygame.sprite.Sprite):
             # else:
 
         if keyboard[pygame.K_LEFT] or keyboard[ord('a')]:
-            self.lookingAtRight = False
+            self.lookingAtRight = -1
             if not 'stuckLeft' in self.states:  
                 self.control(-steps,0)
                 
         if keyboard[pygame.K_RIGHT] or keyboard[ord('d')]:
-            self.lookingAtRight = True
+            self.lookingAtRight = 1
             if not 'stuckRight' in self.states:
                 self.control(steps,0)
         # elif   not 'notFalling' in self.states and 'stuckRight' in self.states:
@@ -436,7 +549,7 @@ class Player(pygame.sprite.Sprite):
             if self.frame//self.animSpeed >= len(self.imgIdle):
                 self.frame = 0
             self.image = self.imgIdle[(self.frame//self.animSpeed)]
-            self.image = pygame.transform.flip(self.image,not self.lookingAtRight,False)
+            self.image = pygame.transform.flip(self.image,not (self.lookingAtRight==1),False)
 
 
         if 'jumping' in self.states:
@@ -447,12 +560,12 @@ class Player(pygame.sprite.Sprite):
             if not ((self.frame//self.animSpeed) >= len(self.imgJumping)):
                 print(self.frame//self.animSpeed)
                 self.image = self.imgJumping[self.frame//self.animSpeed]
-                self.image = pygame.transform.flip(self.image,not self.lookingAtRight,False)
+                self.image = pygame.transform.flip(self.image,not (self.lookingAtRight==1),False)
                 self.frame += 1
 
         elif   not 'notFalling' in self.states:
             self.image = self.imgJumping[-1]
-            self.image = pygame.transform.flip(self.image,not self.lookingAtRight,False)
+            self.image = pygame.transform.flip(self.image,not (self.lookingAtRight==1),False)
 
 
         # moving left
