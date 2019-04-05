@@ -15,7 +15,6 @@ import os
 import math
 
 path = os.path.dirname(os.path.abspath(__file__))
-print (path)
 '''
 Objects
 '''
@@ -241,24 +240,26 @@ class Player(pygame.sprite.Sprite):
         if flag:
             if diffx>0:
                 if diffy>0:
-                    aux.rect = pygame.rect.Rect(self.rect.x,self.rect.y,self.shape_x+diffx,self.shape_y+diffy)
+                    aux.rect = pygame.rect.Rect(self.rect.x,self.rect.y+diffy,self.shape_x+diffx,self.shape_y)
                 else:
                     aux.rect = pygame.rect.Rect(self.rect.x,self.rect.y+diffy,self.shape_x+diffx,self.shape_y)
             else:
                 if diffy>0:
-                    aux.rect = pygame.rect.Rect(self.rect.x+diffx,self.rect.y,self.shape_x,self.shape_y+diffy)
-                else:
                     aux.rect = pygame.rect.Rect(self.rect.x+diffx,self.rect.y+diffy,self.shape_x,self.shape_y)
+                else:
+                    aux.rect = pygame.rect.Rect(self.rect.x+diffx,self.rect.y,self.shape_x,self.shape_y+diffy)
         else:
 
             if diffx>0:
-                if diffy>=0:
+                if diffy>0:
                     aux.rect = pygame.rect.Rect(self.rect.x+diffx,self.rect.y+diffy,self.shape_x,self.shape_y)
                 else:
                     aux.rect = pygame.rect.Rect(self.rect.x+diffx,self.rect.y,self.shape_x,self.shape_y+diffy)
+                    # print('rect top ',aux.rect.top,',   real top ',self.rect.top)
             else:
-                if diffy>=0:
+                if diffy>0:
                     aux.rect = pygame.rect.Rect(self.rect.x,self.rect.y+diffy,self.shape_x+diffx,self.shape_y)
+                    # print('rect top ',aux.rect.top,',   real top ',self.rect.top)
                 else:
                     aux.rect = pygame.rect.Rect(self.rect.x,self.rect.y,self.shape_x+diffx,self.shape_y+diffy)
 
@@ -283,7 +284,7 @@ class Player(pygame.sprite.Sprite):
         self.shape_x,self.shape_y = self.image.get_size()
         col_list = self.checkCol()
 
-
+        tope = False
 
         if keyboard[pygame.K_SPACE] or keyboard[ord('w')]:
             if  not 'falling' in self.states and not  'jumping' in self.states:
@@ -297,6 +298,7 @@ class Player(pygame.sprite.Sprite):
                 self.jumpSpeed -= self.jumpSpeed*0.15
             else:
                 self.jumpSpeed=0
+                tope = True
                 self.falling = 1
                 if 'jumping' in self.states:
                     self.states.pop('jumping')
@@ -333,15 +335,14 @@ class Player(pygame.sprite.Sprite):
         diffY = totalMoveY = self.movey +self.gravMovey+self.jumpSpeed
 
 
-
         self.states['falling'] = 1
-        print (self.falling)
         col_list=self.checkCol(-diffX-self.lookingAtRight*20,diffY+20*self.falling,False)
         for i in col_list:                     
                 if diffY >= 0:
-                    self.rect.bottom = i.rect.top
-                    if 'falling' in self.states:
-                        self.states.pop('falling')
+                    if not tope:
+                        self.rect.bottom = i.rect.top
+                        if 'falling' in self.states:
+                            self.states.pop('falling')
 
                 if diffY < 0:
                     self.jumpSpeed = -0.1
@@ -373,7 +374,6 @@ class Player(pygame.sprite.Sprite):
                 self.frame = 0
 
             if not ((self.frame//self.animSpeed) >= len(self.imgJumping)):
-                print(self.frame//self.animSpeed)
                 self.image = self.imgJumping[self.frame//self.animSpeed]
                 self.image = pygame.transform.flip(self.image,not (self.lookingAtRight==1),False)
                 self.frame += 1
@@ -558,7 +558,6 @@ class Player(pygame.sprite.Sprite):
                 self.frame = 0
 
             if not ((self.frame//self.animSpeed) >= len(self.imgJumping)):
-                print(self.frame//self.animSpeed)
                 self.image = self.imgJumping[self.frame//self.animSpeed]
                 self.image = pygame.transform.flip(self.image,not (self.lookingAtRight==1),False)
                 self.frame += 1
@@ -660,7 +659,6 @@ while main == True:
                 with open('map.pkl','wb') as wb:
                     objects = []
                     for i in desierto.objects_list.__iter__():
-                        print(i)
                         objects.append(i.getConstructor())
                         
                     pickle.dump(objects,wb)
