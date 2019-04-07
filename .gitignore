@@ -1,3 +1,5 @@
 ./dist
 ./build
 tempCodeRunnerFile.py
+venv/
+.vscode/
