@@ -236,36 +236,40 @@ class Player(pygame.sprite.Sprite):
         midleft     = self.rect.midleft[0]    +latOff,self.rect.midleft[1]        
         midright    = self.rect.midright[0]   -latOff,self.rect.midright[1]      
 
+        BLUE=(0,0,255)      
         aux = pygame.sprite.Sprite()
         if flag:
             if diffx>0:
                 if diffy>0:
-                    aux.rect = pygame.rect.Rect(self.rect.x,self.rect.y+diffy,self.shape_x+diffx,self.shape_y)
+                    aux.rect = pygame.rect.Rect(self.rect.x+diffx,self.rect.y+self.shape_y*0.2,self.shape_x,self.shape_y*0.6)
                 else:
-                    aux.rect = pygame.rect.Rect(self.rect.x,self.rect.y+diffy,self.shape_x+diffx,self.shape_y)
-            else:
+                    aux.rect = pygame.rect.Rect(self.rect.x+diffx,self.rect.y+self.shape_y*0.2,self.shape_x,self.shape_y*0.6)
+            elif diffx<0:
                 if diffy>0:
-                    aux.rect = pygame.rect.Rect(self.rect.x+diffx,self.rect.y+diffy,self.shape_x,self.shape_y)
+                    aux.rect = pygame.rect.Rect(self.rect.x+diffx,self.rect.y+self.shape_y*0.2,self.shape_x,self.shape_y*0.6)
                 else:
-                    aux.rect = pygame.rect.Rect(self.rect.x+diffx,self.rect.y,self.shape_x,self.shape_y+diffy)
+                    aux.rect = pygame.rect.Rect(self.rect.x+diffx,self.rect.y+self.shape_y*0.2,self.shape_x,self.shape_y*0.6)
+
         else:
 
             if diffx>0:
                 if diffy>0:
-                    aux.rect = pygame.rect.Rect(self.rect.x+diffx,self.rect.y+diffy,self.shape_x,self.shape_y)
-                else:
-                    aux.rect = pygame.rect.Rect(self.rect.x+diffx,self.rect.y,self.shape_x,self.shape_y+diffy)
-                    # print('rect top ',aux.rect.top,',   real top ',self.rect.top)
+                    aux.rect = pygame.rect.Rect(self.rect.x+self.shape_x*0.25,self.rect.y+diffy,self.shape_x*0.6,self.shape_y)
+                elif diffy<0:
+                    aux.rect = pygame.rect.Rect(self.rect.x+self.shape_x*0.2,self.rect.y,self.shape_x*0.6,self.shape_y+diffy)
             else:
                 if diffy>0:
-                    aux.rect = pygame.rect.Rect(self.rect.x,self.rect.y+diffy,self.shape_x+diffx,self.shape_y)
-                    # print('rect top ',aux.rect.top,',   real top ',self.rect.top)
-                else:
-                    aux.rect = pygame.rect.Rect(self.rect.x,self.rect.y,self.shape_x+diffx,self.shape_y+diffy)
+                    aux.rect = pygame.rect.Rect(self.rect.x+self.shape_x*0.25,self.rect.y+diffy,self.shape_x*0.6,self.shape_y)
+                    
+                elif diffy<0:
+                    aux.rect = pygame.rect.Rect(self.rect.x+self.shape_x*0.2,self.rect.y,self.shape_x*0.6,self.shape_y+diffy)
+                    
 
 
-
-        objs = pygame.sprite.spritecollide(aux, self.scene.objects_list, False)
+        if hasattr(aux,'rect'):
+            objs = pygame.sprite.spritecollide(aux, self.scene.objects_list, False)
+        else:
+            objs=[]
 
         return objs
 
@@ -336,25 +340,29 @@ class Player(pygame.sprite.Sprite):
 
 
         self.states['falling'] = 1
-        col_list=self.checkCol(-diffX-self.lookingAtRight*20,diffY+20*self.falling,False)
+        col_list=self.checkCol(diffX+self.lookingAtRight*20,diffY+20*self.falling,False)
         for i in col_list:                     
                 if diffY >= 0:
                     if not tope:
-                        self.rect.bottom = i.rect.top
-                        if 'falling' in self.states:
-                            self.states.pop('falling')
+                        if abs(self.rect.bottom-i.rect.top)<abs(self.rect.top-i.rect.bottom):
+                            self.rect.bottom = i.rect.top
+                            if 'falling' in self.states:
+                                self.states.pop('falling')
 
                 if diffY < 0:
-                    self.jumpSpeed = -0.1
-                    self.rect.top = i.rect.bottom
+                    if abs(self.rect.bottom-i.rect.top)>abs(self.rect.top-i.rect.bottom):
+                        self.jumpSpeed = -0.1
+                        self.rect.top = i.rect.bottom
 
         self.rect.y = self.rect.y + totalMoveY
-        col_list=self.checkCol(diffX+self.lookingAtRight*10,-diffY-10*self.falling)
+        col_list=self.checkCol(diffX,-diffY)
         for i in col_list:    
-                if diffX > 0:                        
-                    self.rect.right = i.rect.left    
-                if diffX < 0:                        
-                    self.rect.left = i.rect.right
+                if diffX > 0:
+                    if abs(self.rect.right-i.rect.left)<abs(self.rect.left-i.rect.right):
+                        self.rect.right = i.rect.left    
+                if diffX < 0:   
+                    if abs(self.rect.right-i.rect.left)>abs(self.rect.left-i.rect.right):                     
+                        self.rect.left = i.rect.right
 
         self.rect.x = self.rect.x + totalMoveX
 
