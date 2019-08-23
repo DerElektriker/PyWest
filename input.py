@@ -102,7 +102,7 @@ class InputHandler():
 
     def update(self):
 
-        if self.currentDevice.type == "MouseAndKeyboard":
+        if self.currentDevice.type == DEVICE_TYPE.MOUSE_AND_KEYBOARD:
             mouse = pygame.mouse.get_pressed()
             keyboard = pygame.key.get_pressed()
             for k, v in self.currentDevice.configuration.items():
@@ -114,7 +114,7 @@ class InputHandler():
                         self.inGameControls[k] = mouse[v[1].value]
             self.inGameControls["pointer"] = pygame.mouse.get_pos()
 
-        elif self.currentDevice.type == "Joystick":
+        elif self.currentDevice.type == DEVICE_TYPE.JOYSTICK:
             for k, v in self.currentDevice.configuration.items():
                 if v:
                     component = v[0]
@@ -126,6 +126,10 @@ class InputHandler():
                         self.inGameControls[k] = (self.currentDevice.joystick.get_hat(v[1]) == v[2])
             self.inGameControls["pointer"] = (self.currentDevice.joystick.get_axis(3), self.currentDevice.joystick.get_axis(4))
 
+
+class DEVICE_TYPE(Enum) :
+    MOUSE_AND_KEYBOARD = "MouseAndKeyboard"
+    JOYSTICK = "Joystick"
 
 class MOUSEBUTTON(Enum):
     LEFTBUTTON = 0
