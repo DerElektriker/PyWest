@@ -603,6 +603,7 @@ class Player(pygame.sprite.Sprite):
         self.movex = 0
         self.movey = 0
 
+
 '''
 Setup
 '''
