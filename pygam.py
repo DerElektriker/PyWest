@@ -9,12 +9,14 @@ MESSAGE = b"Mi-Vieja-Mula arg1 arg2 // Traaa arg1 arg2 //"#input().encode()
 import json
 def dict_to_binary(the_dict):
     str = json.dumps(the_dict)
-    binary = ' '.join(format(ord(letter), 'b') for letter in str)
+    # binary = ' '.join(format(ord(letter), 'b') for letter in str)
+    binary = str.encode()
     return binary
 
 
 def binary_to_dict(the_binary):
-    jsn = ''.join(chr(int(x, 2)) for x in the_binary.split())
+    # jsn = ''.join(chr(int(x, 2)) for x in the_binary.split())
+    jsn = the_binary.decode()
     d = json.loads(jsn)  
     return d
 
@@ -104,8 +106,3 @@ while(1):
 
     clock.tick(tickRate)
 s.close()
-
-class UserCmd():
-    interpolationTime
-    msec
-    gamecontrols

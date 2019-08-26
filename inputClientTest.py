@@ -75,7 +75,67 @@ class TextPrint:
         self.x -= 10
     
 
+####### CLIENT ########
+import socket , time
+import input
+TCP_IP = '127.0.0.1'
+TCP_PORT = 5005
+
+BUFFER_SIZE = 1024
+MESSAGE = b"Mi-Vieja-Mula arg1 arg2 // Traaa arg1 arg2 //"#input().encode()
+
+import json
+def dict_to_binary(the_dict):
+    str = json.dumps(the_dict)
+    # binary = ' '.join(format(ord(letter), 'b') for letter in str)
+    binary = str.encode()
+    return binary
+
+
+def binary_to_dict(the_binary):
+    # jsn = ''.join(chr(int(x, 2)) for x in the_binary.split())
+    jsn = the_binary.decode()
+    d = json.loads(jsn)  
+    return d
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+print("Iniciando conexión...")
+s.connect((TCP_IP, TCP_PORT))
+print("Conexión TCP iniciada")
+
+# UDP socket
+import select
+
+UDP_IP = "127.0.0.1"
+UDP_PORT = 5005
+
+udpSocket = socket.socket(socket.AF_INET, # Internet
+                     socket.SOCK_DGRAM) # UDP
+#udpSocket.bind((UDP_IP, UDP_PORT))
+udpSocket.setblocking(False)
+# udpSocket.settimeout(0)
+
+tickRate = 33
+#sample input rate, same as server tick rate
+
+USERCMD = pygame.USEREVENT+1
+cmdRate = 33
+#rate in which the user send user commands at the server
+
+UPDATE = pygame.USEREVENT+2
+updateRate = 20
+#rate at which client recieve snapshots
+
+interpolationPeriod = 100
+
+snapshotHistory = []
+userCmdList = []
+
 pygame.init()
+
+pygame.time.set_timer(USERCMD, round(1000 / cmdRate))
+pygame.time.set_timer(UPDATE, round(1000 / updateRate))
+
  
 # Set the width and height of the screen [width,height]
 size = [500, 700]
@@ -98,9 +158,35 @@ textPrint = TextPrint()
 
 playerInput = InputHandler()
 
+message = {
+    'usercmds' : []
+}
 
 # -------- Main Program Loop -----------
 while done==False:
+
+    newUserCmd = {}
+    newUserCmd['mseg'] = pygame.time.get_ticks()
+    message['usercmds'].append(newUserCmd)
+
+    ##Check for updates
+
+    #Client update
+
+    # Sample inputs
+
+    playerInput.update()
+
+    if playerInput.get("escape"):
+        if (playerInput.getDevice()).name == "Mouse and Keyboard":
+            if "Controller (Xbox One For Windows)" in map(lambda x: x.name, playerInput.getDevicesList()):
+                playerInput.setDevice("Controller (Xbox One For Windows)")
+        elif (playerInput.getDevice()).name == "Controller (Xbox One For Windows":
+            playerInput.setDevice("Mouse and Keyboard")
+
+    newUserCmd['gamecontrols'] = playerInput.inGameControls
+    print("sampling")
+
     # EVENT PROCESSING STEP
     for event in pygame.event.get(): # User did something
         if event.type == pygame.QUIT: # If user clicked close
@@ -111,21 +197,15 @@ while done==False:
             print("Joystick button pressed.")
         if event.type == pygame.JOYBUTTONUP:
             print("Joystick button released.")
-            
-    playerInput.update()
-
-    print(playerInput.inGameControls)
-
-    if playerInput.get("escape"):
-        if (playerInput.getDevice()).name == "Mouse and Keyboard":
-            if "Controller (Xbox One For Windows)" in map(lambda x: x.name, playerInput.getDevicesList()):
-                playerInput.setDevice("Controller (Xbox One For Windows)")
-        elif (playerInput.getDevice()).name == "Controller (Xbox One For Windows":
-            playerInput.setDevice("Mouse and Keyboard")
+        if event.type == USERCMD:
+            # print("Enviando mensaje:", message)
+            udpSocket.sendto(dict_to_binary(message), (UDP_IP, UDP_PORT))
+            message['usercmds'] = []
+            print("Mensaje enviado")
 
     # DRAWING STEP
     # First, clear the screen to white. Don't put other drawing commands
-    # above this, or they will be er ased with this command.
+    # above this, or they will be erased with this command.
     screen.fill(WHITE)
     textPrint.reset()
 
@@ -144,7 +224,7 @@ while done==False:
     pygame.display.flip()
 
     # Limit to 20 frames per second
-    clock.tick(20)
+    clock.tick(tickRate)
     
 # Close the window and quit.
 # If you forget this line, the program will 'hang'

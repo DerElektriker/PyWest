@@ -13,6 +13,7 @@ import pygame
 import sys
 import os
 import math
+import input
 
 path = os.path.dirname(os.path.abspath(__file__))
 '''
@@ -157,6 +158,7 @@ class Player(pygame.sprite.Sprite):
         self.y = 300 
         self.frame = 0
         self.images = []
+        self.controls = input.InputHandler()
 
 
         #Lista de estados
@@ -273,7 +275,6 @@ class Player(pygame.sprite.Sprite):
 
         return objs
 
-
     def control(self,x,y):
         '''
         control player movement
@@ -290,7 +291,17 @@ class Player(pygame.sprite.Sprite):
 
         tope = False
 
-        if keyboard[pygame.K_SPACE] or keyboard[ord('w')]:
+        self.controls.update()
+
+
+        if self.controls.get("escape"):
+            if (self.controls.getDevice()).name == "Mouse and Keyboard":
+                if "Controller (Xbox One For Windows)" in map(lambda x: x.name, self.controls.getDevicesList()):
+                    self.controls.setDevice("Controller (Xbox One For Windows)")
+            elif (self.controls.getDevice()).name == "Controller (Xbox One For Windows":
+                self.controls.setDevice("Mouse and Keyboard")
+
+        if self.controls.get('jump'):
             if  not 'falling' in self.states and not  'jumping' in self.states:
                 self.states['jumping']=1
 
@@ -325,11 +336,11 @@ class Player(pygame.sprite.Sprite):
                 
 
 
-        if keyboard[pygame.K_LEFT] or keyboard[ord('a')]:
+        if self.controls.get('left'):
             self.lookingAtRight = -1
             self.movex=  -steps
 
-        if keyboard[pygame.K_RIGHT] or keyboard[ord('d')]:
+        if self.controls.get('right'):
             self.lookingAtRight = 1
             self.movex=  steps
 
@@ -368,7 +379,7 @@ class Player(pygame.sprite.Sprite):
 
         ##Cantidad de animaciones es igual a la longitud del vector de animaciones
         numAnim = len(self.images)
-        if not (keyboard[pygame.K_LEFT] or keyboard[ord('a')] or keyboard[pygame.K_RIGHT] or keyboard[ord('d')]) and not 'jumping' in self.states and  not 'falling' in self.states:
+        if not (self.controls.get('left') or self.controls.get('right')) and not 'jumping' in self.states and  not 'falling' in self.states:
             self.frame += 1
             if self.frame//self.animSpeed >= len(self.imgIdle):
                 self.frame = 0
@@ -392,7 +403,7 @@ class Player(pygame.sprite.Sprite):
 
 
         # moving left
-        elif (keyboard[pygame.K_LEFT] or keyboard[ord('a')] or keyboard[pygame.K_RIGHT] or keyboard[ord('d')]) and not 'jumping' in self.states and not 'falling' in self.states:
+        elif (self.controls.get('left') or self.controls.get('right')) and not 'jumping' in self.states and not 'falling' in self.states:
 
             if self.movex < 0:
                 if self.lastMov != 'left':
@@ -430,7 +441,7 @@ class Player(pygame.sprite.Sprite):
         size_x = self.rect.right  - self.rect.left
         size_y = self.rect.bottom - self.rect.top
 
-        if keyboard[pygame.K_SPACE] or keyboard[ord('w')]:
+        if self.controls.get('jump'):
             if  'notFalling' in self.states and not  'jumping' in self.states:
                 self.states['jumping']=1
 
@@ -491,12 +502,12 @@ class Player(pygame.sprite.Sprite):
         # elif   not 'notFalling' in self.states and 'stuckLeft' in self.states:
             # else:
 
-        if keyboard[pygame.K_LEFT] or keyboard[ord('a')]:
+        if self.controls.get('left'):
             self.lookingAtRight = -1
             if not 'stuckLeft' in self.states:  
                 self.control(-steps,0)
                 
-        if keyboard[pygame.K_RIGHT] or keyboard[ord('d')]:
+        if self.controls.get('right'):
             self.lookingAtRight = 1
             if not 'stuckRight' in self.states:
                 self.control(steps,0)
@@ -552,7 +563,7 @@ class Player(pygame.sprite.Sprite):
 
         ##Cantidad de animaciones es igual a la longitud del vector de animaciones
         numAnim = len(self.images)
-        if not (keyboard[pygame.K_LEFT] or keyboard[ord('a')] or keyboard[pygame.K_RIGHT] or keyboard[ord('d')]) and not 'jumping' in self.states and  'notFalling' in self.states:
+        if not (self.controls.get('left') or self.controls.get('right')) and not 'jumping' in self.states and  'notFalling' in self.states:
             self.frame += 1
             if self.frame//self.animSpeed >= len(self.imgIdle):
                 self.frame = 0
@@ -576,7 +587,7 @@ class Player(pygame.sprite.Sprite):
 
 
         # moving left
-        elif (keyboard[pygame.K_LEFT] or keyboard[ord('a')] or keyboard[pygame.K_RIGHT] or keyboard[ord('d')]) and not 'jumping' in self.states and not 'falling' in self.states:
+        elif (self.controls.get('left') or self.controls.get('right')) and not 'jumping' in self.states and not 'falling' in self.states:
 
             if self.movex < 0:
                 if self.lastMov != 'left':
@@ -613,6 +624,10 @@ worldy = 720
 fps = 40        # frame rate
 clock = pygame.time.Clock()
 pygame.init()
+
+# Initialize the joysticks
+pygame.joystick.init()
+
 main = True
 
 BLUE  = (25,25,200)
@@ -630,8 +645,10 @@ backdropbox = world.get_rect()
 desierto = Map(world)
 ##JUGADORR
 player = Player(desierto)   # spawn player
+# player2 = Player(desierto)   # spawn player
 player_list = pygame.sprite.Group()
 player_list.add(player) 
+# player_list.add(player2) 
 steps = 10      # how fast to move
 
 '''
@@ -666,17 +683,21 @@ while main == True:
             if event.key == ord('k'):
                 import pickle
                 with open('map.pkl','wb') as wb:
+                
+                def saveMap(pkl):
                     objects = []
                     for i in desierto.objects_list.__iter__():
                         objects.append(i.getConstructor())
                         
-                    pickle.dump(objects,wb)
+                    pickle.dump(objects,pkl)
                     
 
             if event.key == ord('l'):
                 import pickle
                 with open('map.pkl','rb') as rb:
-                    objects = pickle.load(rb)
+
+                def loadMap(pkl):
+                    objects = pickle.load(pkl)
                     desierto.objects_list.empty()
                     for i in objects:
                         desierto.objects_list.add(i[0](*i[1]))

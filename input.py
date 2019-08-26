@@ -94,7 +94,7 @@ class InputHandler():
         l = list(filter(lambda x: x.name == device, self.devices))
         if len(l) == 1:
             self.currentDevice = l[0]
-            if self.currentDevice.type == "Joystick":
+            if self.currentDevice.type == DEVICE_TYPE.JOYSTICK:
                 self.currentDevice.joystick.init()
 
     def getDevice(self):
@@ -142,7 +142,7 @@ class MouseAndKeyboard(Device):
     '''
     def __init__(self):
         self.name = "Mouse and Keyboard"
-        self.type = "MouseAndKeyboard"
+        self.type = DEVICE_TYPE.MOUSE_AND_KEYBOARD
         self.defaultConfiguration = {
             "left"              :   ('keyboard',pygame.K_a),
             "right"             :   ('keyboard',pygame.K_d),
@@ -166,12 +166,12 @@ class MouseAndKeyboard(Device):
 class Joystick(Device):
     def __init__(self, name, joystick):
         self.name = name
-        self.type = "Joystick"
+        self.type = DEVICE_TYPE.JOYSTICK
         self.joystick = joystick
         self.defaultConfiguration = {
             "left"              :   ('axis',0,-1),
             "right"             :   ('axis',0, 1),
-            "jump"              :   ('axis',1,-1),
+            "jump"              :   ('button',0),
             "pause"             :   ('button',7),
             "drop"              :   ('button',3),
             "reset"             :   None,
